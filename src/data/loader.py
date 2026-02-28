@@ -84,3 +84,12 @@ def get_data_loaders(
     )
 
     return train_loader, test_loader, class_names
+
+
+if __name__ == "__main__":
+    dataloader_train, dataloader_test, class_names = get_data_loaders(
+        data_dir="data/processed"
+    )
+    print(class_names)
+    print(len(dataloader_train))
+    print(len(dataloader_test))
