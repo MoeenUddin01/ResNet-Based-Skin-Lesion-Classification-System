@@ -88,7 +88,7 @@ def get_data_loaders(
 
 if __name__ == "__main__":
     dataloader_train, dataloader_test, class_names = get_data_loaders(
-        data_dir="data/processed"
+        data_dir="dataset/processed"
     )
     print(class_names)
     print(len(dataloader_train))
