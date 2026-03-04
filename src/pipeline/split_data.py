@@ -20,16 +20,20 @@ def split_dataset(
     processed_dir: Path,
     output_dir: Path,
     test_size: float = 0.1,
-    val_size: float = 0.1,
+    val_ratio: float = 0.3,
     seed: int = 42,
 ) -> None:
     """Splits the processed dataset into train, val, and test subsets.
+    
+    The testing data will exactly contain `test_size` fraction of the total data.
+    The remaining data will be split according to `val_ratio`, which dictates
+    the validation fraction out of that remaining subgroup.
 
     Args:
         processed_dir: Path to the processed dataset containing class subfolders.
         output_dir: Path to the output directory where splits will be created.
-        test_size: Proportion of the dataset to include in the test split.
-        val_size: Proportion of the dataset to include in the validation split.
+        test_size: Proportion of the dataset to hold out strictly for testing.
+        val_ratio: Proportion of the remaining data to allocate to validation.
         seed: Random seed for reproducibility.
 
     Raises:
@@ -62,9 +66,13 @@ def split_dataset(
         random.shuffle(images)
 
         total_images = len(images)
-        # Take exactly 10% of the class data for testing as requested
+        
+        # Take exactly test_size out of the full dataset
         num_test = int(total_images * test_size)
-        num_val = int(total_images * val_size)
+        
+        # Calculate train/val from the REMAINING data
+        remaining_images_count = total_images - num_test
+        num_val = int(remaining_images_count * val_ratio)
 
         test_images = images[:num_test]
         val_images = images[num_test : num_test + num_val]
@@ -107,5 +115,5 @@ if __name__ == "__main__":
         processed_dir=PROCESSED_DATA_DIR,
         output_dir=SPLIT_DATA_DIR,
         test_size=0.1,  # 10% exactly as requested for test
-        val_size=0.1,  # Remaining split -> 10% val, 80% train out of total.
+        val_ratio=0.3   # 30% of the remaining data for val (which is .3 * .9 = 27% total)
     )

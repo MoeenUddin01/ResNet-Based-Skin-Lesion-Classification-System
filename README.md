@@ -20,7 +20,7 @@ The `dataset/` directory contains all data for the application. The workflow for
 python -m src.data.datapre
 ```
 
-2. **Split Data for Training, Validation and Testing:** Once the processed set is built, run the splitting script to create an official, reproducibe partition of exactly `10%` test data and `10%` validation data. The data will be saved inside `dataset/split/`.
+2. **Split Data for Training, Validation and Testing:** Once the processed set is built, run the splitting script to create an official, reproducibe partition of exactly `10%` test data. The remaining data is then split into `30%` validation data and `70%` training data. The data will be saved inside `dataset/split/`.
 
 ```bash
 python -m src.pipeline.split_data
