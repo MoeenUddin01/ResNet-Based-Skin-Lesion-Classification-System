@@ -1,0 +1,111 @@
+"""
+Data splitting script for the HAM10000 dataset.
+Splits the processed class-wise directories into train, val, and test sets.
+"""
+
+from __future__ import annotations
+
+import logging
+import random
+import shutil
+from pathlib import Path
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
+
+
+def split_dataset(
+    processed_dir: Path,
+    output_dir: Path,
+    test_size: float = 0.1,
+    val_size: float = 0.1,
+    seed: int = 42,
+) -> None:
+    """Splits the processed dataset into train, val, and test subsets.
+
+    Args:
+        processed_dir: Path to the processed dataset containing class subfolders.
+        output_dir: Path to the output directory where splits will be created.
+        test_size: Proportion of the dataset to include in the test split.
+        val_size: Proportion of the dataset to include in the validation split.
+        seed: Random seed for reproducibility.
+
+    Raises:
+        FileNotFoundError: If the processed directory doesn't exist.
+        ValueError: If no class directories are found.
+    """
+    random.seed(seed)
+
+    if not processed_dir.exists():
+        raise FileNotFoundError(f"Processed directory not found: {processed_dir}")
+
+    # Create output directories
+    train_dir = output_dir / "train"
+    val_dir = output_dir / "val"
+    test_dir = output_dir / "test"
+
+    for split_dir in [train_dir, val_dir, test_dir]:
+        split_dir.mkdir(parents=True, exist_ok=True)
+
+    class_dirs = [d for d in processed_dir.iterdir() if d.is_dir()]
+    if not class_dirs:
+        raise ValueError(f"No class directories found in {processed_dir}")
+
+    for class_dir in class_dirs:
+        class_name = class_dir.name
+        images = list(class_dir.glob("*.jpg"))
+
+        # Sort for reproducibility before shuffling
+        images.sort()
+        random.shuffle(images)
+
+        total_images = len(images)
+        # Take exactly 10% of the class data for testing as requested
+        num_test = int(total_images * test_size)
+        num_val = int(total_images * val_size)
+
+        test_images = images[:num_test]
+        val_images = images[num_test : num_test + num_val]
+        train_images = images[num_test + num_val :]
+
+        # Copy images to their respective split directories
+        _copy_images(test_images, test_dir / class_name)
+        _copy_images(val_images, val_dir / class_name)
+        _copy_images(train_images, train_dir / class_name)
+
+        logging.info(
+            f"Class '{class_name}': {len(train_images)} train, "
+            f"{len(val_images)} val, {len(test_images)} test."
+        )
+
+    logging.info(f"Dataset splitting complete. Files saved to {output_dir}")
+
+
+def _copy_images(images: list[Path], target_dir: Path) -> None:
+    """Helper function to create a directory and copy images.
+
+    Args:
+        images: List of image paths to copy.
+        target_dir: Destination directory path.
+    """
+    target_dir.mkdir(parents=True, exist_ok=True)
+    for img_path in images:
+        shutil.copy2(img_path, target_dir / img_path.name)
+
+
+if __name__ == "__main__":
+    BASE_DIR = Path(
+        "/home/moeenuddin/Desktop/Deep_learning/Skin_Lesion/"
+        "ResNet-Based-Skin-Lesion-Classification-System"
+    )
+    PROCESSED_DATA_DIR = BASE_DIR / "dataset" / "processed"
+    SPLIT_DATA_DIR = BASE_DIR / "dataset" / "split"
+
+    split_dataset(
+        processed_dir=PROCESSED_DATA_DIR,
+        output_dir=SPLIT_DATA_DIR,
+        test_size=0.1,  # 10% exactly as requested for test
+        val_size=0.1,  # Remaining split -> 10% val, 80% train out of total.
+    )

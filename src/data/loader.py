@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import torch
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
 
@@ -12,34 +12,31 @@ def get_data_loaders(
     batch_size: int = 32,
     img_size: tuple[int, int] = (224, 224),
     num_workers: int = 4,
-    seed: int = 42,
 ) -> tuple[DataLoader, DataLoader, list[str]]:
-    """Loads the skin lesion dataset and returns train and test DataLoaders.
+    """Loads the train and val skin lesion datasets and returns DataLoaders.
 
     Args:
-        data_dir: Path to the root directory containing the class subdirectories.
+        data_dir: Path to the root split directory containing 'train' and 'val' subfolders.
         batch_size: The number of images per batch.
         img_size: The target image size as a (height, width) tuple.
         num_workers: The number of subprocesses to use for data loading.
-        seed: The random seed for the train-test split to ensure reproducibility.
 
     Returns:
         A tuple containing:
             - train_loader: The DataLoader for the training subset.
-            - test_loader: The DataLoader for the testing subset.
+            - val_loader: The DataLoader for the validation subset.
             - class_names: A list of class names inferred from the directory structure.
 
     Raises:
-        ValueError: If the directory does not exist, is empty, or contains no usable data.
+        ValueError: If the required subdirectories are missing.
     """
     data_path = Path(data_dir)
+    train_dir = data_path / "train"
+    val_dir = data_path / "val"
 
-    if not data_path.exists():
-        raise ValueError(f"The data directory does not exist: {data_path}")
-
-    # Check if directory is empty
-    if not any(data_path.iterdir()):
-        raise ValueError(f"The data directory is empty: {data_path}")
+    for d in [train_dir, val_dir]:
+        if not d.exists():
+            raise ValueError(f"Required data directory does not exist: {d}")
 
     # ImageNet normalization stats
     transform = transforms.Compose(
@@ -50,21 +47,10 @@ def get_data_loaders(
         ]
     )
 
-    full_dataset = datasets.ImageFolder(root=str(data_path), transform=transform)
-    class_names = full_dataset.classes
+    train_dataset = datasets.ImageFolder(root=str(train_dir), transform=transform)
+    val_dataset = datasets.ImageFolder(root=str(val_dir), transform=transform)
 
-    if not full_dataset:
-        raise ValueError(f"No valid images found in the data directory: {data_path}")
-
-    total_size = len(full_dataset)
-    train_size = int(0.7 * total_size)
-    test_size = total_size - train_size
-
-    generator = torch.Generator().manual_seed(seed)
-    train_dataset, test_dataset = random_split(
-        full_dataset, [train_size, test_size], generator=generator
-    )
-
+    class_names = train_dataset.classes
     pin_memory = torch.cuda.is_available()
 
     train_loader = DataLoader(
@@ -75,6 +61,55 @@ def get_data_loaders(
         pin_memory=pin_memory,
     )
 
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=pin_memory,
+    )
+
+    return train_loader, val_loader, class_names
+
+
+def get_test_loader(
+    data_dir: str | Path,
+    batch_size: int = 32,
+    img_size: tuple[int, int] = (224, 224),
+    num_workers: int = 4,
+) -> tuple[DataLoader, list[str]]:
+    """Loads the test skin lesion dataset and returns a DataLoader.
+
+    Args:
+        data_dir: Path to the root split directory containing 'test' subfolder.
+        batch_size: The number of images per batch.
+        img_size: The target image size as a (height, width) tuple.
+        num_workers: The number of subprocesses to use for data loading.
+
+    Returns:
+        A tuple containing:
+            - test_loader: The DataLoader for the testing subset.
+            - class_names: A list of class names inferred from the directory structure.
+
+    Raises:
+        ValueError: If the test directory does not exist.
+    """
+    test_dir = Path(data_dir) / "test"
+
+    if not test_dir.exists():
+        raise ValueError(f"Required test directory does not exist: {test_dir}")
+
+    transform = transforms.Compose(
+        [
+            transforms.Resize(img_size),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ]
+    )
+
+    test_dataset = datasets.ImageFolder(root=str(test_dir), transform=transform)
+    pin_memory = torch.cuda.is_available()
+
     test_loader = DataLoader(
         test_dataset,
         batch_size=batch_size,
@@ -83,13 +118,16 @@ def get_data_loaders(
         pin_memory=pin_memory,
     )
 
-    return train_loader, test_loader, class_names
+    return test_loader, test_dataset.classes
 
 
 if __name__ == "__main__":
-    dataloader_train, dataloader_test, class_names = get_data_loaders(
-        data_dir="dataset/processed"
+    dataloader_train, dataloader_val, class_names = get_data_loaders(
+        data_dir="dataset/split"
     )
-    print(class_names)
-    print(len(dataloader_train))
-    print(len(dataloader_test))
+    print("Classes:", class_names)
+    print("Train batches:", len(dataloader_train))
+    print("Val batches:", len(dataloader_val))
+
+    dataloader_test, test_classes = get_test_loader(data_dir="dataset/split")
+    print("Test batches:", len(dataloader_test))
