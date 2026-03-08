@@ -28,9 +28,22 @@ python -m src.pipeline.split_data
 
 ## Model Training
 
-With the structured splits inside `dataset/split`, the train and val loaders can be initialized for the training loop. The test data loader is kept strictly for final evaluation metrics.
+The training pipeline uses a custom ResNet-152 wrapper that handles class weights and dynamic augmentation for minority classes.
 
-_(Training commands and logic to be updated later)_
+### Short Guide: Training Your Model
+
+1. **Configure Hyperparameters:** Open `config.yaml` to adjust your settings before training. This file controls:
+   - **hardware**: Enabling CUDA and setting dataloader workers.
+   - **model**: Toggling pretrained ImageNet weights and freezing the backbone.
+   - **training**: Setting `batch_size`, `learning_rate`, and `epochs`.
+
+2. **Run the Pipeline:** With your data split and configurations set, start the training orchestrator:
+
+```bash
+uv run python -m src.pipeline.model_training
+```
+
+The script will automatically detect device capabilities, calculate dataset imbalances to assign weighted cross-entropy loss, and begin logging epoch metrics.
 
 ## Serving and App Demo
 

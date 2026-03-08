@@ -1,0 +1,19 @@
+hardware:
+  use_cuda: true
+  num_workers: 4
+
+model:
+  pretrained: true
+  num_classes: 7  # HAM10000 has 7 classes
+  freeze_backbone: true
+
+training:
+  batch_size: 32
+  learning_rate: 0.001
+  epochs: 10
+  weight_decay: 0.0001
+  patience: 3
+
+data:
+  split_dir: "dataset/split"
+  img_size: [224, 224]
