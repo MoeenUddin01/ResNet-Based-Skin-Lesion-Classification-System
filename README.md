@@ -5,9 +5,11 @@ Skin lesion image classification using a ResNet-152 backbone (PyTorch/torchvisio
 ## Setup
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate        # macOS/Linux
-pip install -r requirements.txt
+# Install uv if you don't have it
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Install all dependencies
+uv sync
 ```
 
 ## Data Preparation
@@ -35,7 +37,8 @@ The training pipeline uses a custom ResNet-152 wrapper that handles class weight
 1. **Configure Hyperparameters:** Open `config.yaml` to adjust your settings before training. This file controls:
    - **hardware**: Enabling CUDA and setting dataloader workers.
    - **model**: Toggling pretrained ImageNet weights and freezing the backbone.
-   - **data**: Selecting the dataset directory (`split_dir`), test data directory (`test_dir`), image sizes, and `subset_fraction` (e.g., `0.1` to train on only 10% of the data for quick local debugging).
+   - **data**: Selecting the dataset directory (`split_dir`), test data directory (`test_dir`), and image sizes.
+   - **`subset_fraction`** (dev only): Available in `config.dev.yaml`, set to e.g. `0.1` to train on only 10% of data for quick local debugging.
 
 2. **Run the Pipeline:** With your data split and configurations set, start the training orchestrator:
 
@@ -52,8 +55,7 @@ The training pipeline uses a custom ResNet-152 wrapper that handles class weight
 The script will automatically detect device capabilities, apply dataset subsetting and weighted cross-entropy loss based on class imbalances, display dynamic progress bars, and log epoch metrics.
 
 Once training finishes:
-- **Best model weights** (highest validation accuracy) are saved to `artifacts/models/`.
-- **Training history** (loss and accuracy per epoch for both train and val sets) is saved as a CSV to `artifacts/metrics/training_history.csv`.
+- **Best model weights** (highest validation accuracy) are saved to `artifacts/models/` with the filename pattern `best_model_ep{epoch}_acc{accuracy}_loss{loss}.pth`.
 
 ## Model Evaluation
 
