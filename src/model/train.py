@@ -11,6 +11,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from torchvision import transforms
+from tqdm import tqdm
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -28,8 +29,11 @@ def get_weighted_loss(class_counts: list[int], device: torch.device) -> nn.Cross
         A CrossEntropyLoss configured with class weights.
     """
     total_samples = sum(class_counts)
-    # Inverse frequency weighting
-    weights = [total_samples / (len(class_counts) * count) for count in class_counts]
+    # Inverse frequency weighting. Handle division by zero if count is 0.
+    weights = [
+        total_samples / (len(class_counts) * count) if count > 0 else 0.0
+        for count in class_counts
+    ]
     weight_tensor = torch.tensor(weights, dtype=torch.float32, device=device)
     
     logging.info(f"Initialized weighted loss with weights: {weights}")
@@ -111,7 +115,8 @@ class ModelTrainer:
         correct_preds = 0
         total_samples = 0
 
-        for images, labels in dataloader:
+        pbar = tqdm(dataloader, desc="Training Batch", leave=False)
+        for images, labels in pbar:
             if self.minority_classes:
                 images = apply_minority_augmentation(
                     images, labels, self.minority_classes, self.minority_transform
@@ -151,7 +156,8 @@ class ModelTrainer:
         total_samples = 0
 
         with torch.no_grad():
-            for images, labels in dataloader:
+            pbar = tqdm(dataloader, desc="Validation Batch", leave=False)
+            for images, labels in pbar:
                 images = images.to(self.device, non_blocking=True)
                 labels = labels.to(self.device, non_blocking=True)
 

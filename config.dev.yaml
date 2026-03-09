@@ -1,0 +1,20 @@
+hardware:
+  use_cuda: false     # Use CUDA if available, else falls back to CPU
+  num_workers: 0     # Set to 0 for easier local debugging without multiprocessing overhead
+
+model:
+  pretrained: true
+  num_classes: 7     # HAM10000 has 7 classes
+  freeze_backbone: true
+
+training:
+  batch_size: 8      # Smaller batch size for local memory constraints
+  learning_rate: 0.001
+  epochs: 1          # Only 1 epoch for quick testing/dev
+  weight_decay: 0.0001
+  patience: 3
+
+data:
+  split_dir: "dataset/split" # Can be updated to a smaller subset folder if needed
+  img_size: [224, 224]
+  subset_fraction: 0.1       # Values from 0.0 to 1.0. e.g., 0.1 uses 10% of the data.

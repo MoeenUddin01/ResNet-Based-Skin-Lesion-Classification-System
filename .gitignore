@@ -212,3 +212,5 @@ dataset/
 
 #artifacts
 artifacts/
+#env
+.env
