@@ -15,6 +15,7 @@ training:
   patience: 3
 
 data:
-  split_dir: "dataset/split" # Can be updated to a smaller subset folder if needed
+  split_dir: "dataset/split"  # Can be updated to a smaller subset folder if needed
+  test_dir: "dataset/split"   # evaluator looks for a 'test/' subfolder inside this path
   img_size: [224, 224]
-  subset_fraction: 0.1       # Values from 0.0 to 1.0. e.g., 0.1 uses 10% of the data.
+  subset_fraction: 0.1        # Values from 0.0 to 1.0. e.g., 0.1 uses 10% of the data.

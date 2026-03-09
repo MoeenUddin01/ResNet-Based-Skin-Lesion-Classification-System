@@ -1,6 +1,6 @@
 # ResNet-Based Skin Lesion Classification System
 
-Skin lesion image classification using a ResNet-152 backbone (PyTorch/torchvision). The codebase follows a modular ML pipeline pattern with separate concerns for data, model, and pipeline orchestration. 
+Skin lesion image classification using a ResNet-152 backbone (PyTorch/torchvision). The codebase follows a modular ML pipeline pattern with separate concerns for data, model, and pipeline orchestration.
 
 ## Setup
 
@@ -20,7 +20,7 @@ The `dataset/` directory contains all data for the application. The workflow for
 python -m src.data.datapre
 ```
 
-2. **Split Data for Training, Validation and Testing:** Once the processed set is built, run the splitting script to create an official, reproducibe partition of exactly `10%` test data. The remaining data is then split into `30%` validation data and `70%` training data. The data will be saved inside `dataset/split/`.
+2. **Split Data for Training, Validation and Testing:** Once the processed set is built, run the splitting script to create an official, reproducible partition of exactly `10%` test data. The remaining data is then split into `30%` validation data and `70%` training data. The data will be saved inside `dataset/split/`.
 
 ```bash
 python -m src.pipeline.split_data
@@ -35,7 +35,7 @@ The training pipeline uses a custom ResNet-152 wrapper that handles class weight
 1. **Configure Hyperparameters:** Open `config.yaml` to adjust your settings before training. This file controls:
    - **hardware**: Enabling CUDA and setting dataloader workers.
    - **model**: Toggling pretrained ImageNet weights and freezing the backbone.
-   - **data**: Selecting the dataset directory, image sizes, and `subset_fraction` (e.g., `0.1` to train extremely fast on only 10% of the data for local debugging).
+   - **data**: Selecting the dataset directory (`split_dir`), test data directory (`test_dir`), image sizes, and `subset_fraction` (e.g., `0.1` to train on only 10% of the data for quick local debugging).
 
 2. **Run the Pipeline:** With your data split and configurations set, start the training orchestrator:
 
@@ -49,9 +49,45 @@ The training pipeline uses a custom ResNet-152 wrapper that handles class weight
      uv run python -m src.pipeline.model_training --config config.dev.yaml
      ```
 
-The script will automatically detect device capabilities, apply dataset subsetting and weighted cross-entropy loss based on class imbalances, display dynamic progress bars, and log epoch metrics. 
+The script will automatically detect device capabilities, apply dataset subsetting and weighted cross-entropy loss based on class imbalances, display dynamic progress bars, and log epoch metrics.
 
-Once training finishes, your weights with the highest validation accuracy will automatically be saved into the `artifacts/models/` directory!
+Once training finishes:
+- **Best model weights** (highest validation accuracy) are saved to `artifacts/models/`.
+- **Training history** (loss and accuracy per epoch for both train and val sets) is saved as a CSV to `artifacts/metrics/training_history.csv`.
+
+## Model Evaluation
+
+After training, evaluate your model on the held-out test set using the evaluation pipeline.
+
+1. **Ensure `test_dir` is set** in your config file (it points to the directory containing the `test/` subfolder):
+   ```yaml
+   data:
+     test_dir: "dataset/split"
+   ```
+
+2. **Run the evaluator**, passing the path to your saved checkpoint:
+   ```bash
+   # Full evaluation
+   uv run python -m src.pipeline.model_evaluation \
+     --config config.yaml \
+     --model-path artifacts/models/<your_checkpoint>.pth
+
+   # Quick evaluation with dev config
+   uv run python -m src.pipeline.model_evaluation \
+     --config config.dev.yaml \
+     --model-path artifacts/models/<your_checkpoint>.pth
+   ```
+
+The evaluator automatically:
+- Loads the model checkpoint.
+- Runs inference over the entire test set.
+- Computes overall accuracy, loss, and per-class precision, recall, and F1-score.
+- Saves two CSV files to `artifacts/testing_result/`:
+
+| File | Contents |
+|---|---|
+| `per_class_metrics.csv` | Precision, recall, F1, and support for each of the 7 lesion classes |
+| `summary.csv` | Overall accuracy and loss per run (appended so you can compare multiple checkpoints) |
 
 ## Serving and App Demo
 
