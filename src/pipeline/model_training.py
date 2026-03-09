@@ -9,6 +9,7 @@ from pathlib import Path
 import torch
 import torch.optim as optim
 import yaml
+import csv
 
 from src.data.loader import get_data_loaders
 from src.model.resnet_152 import ResNet152Model
@@ -88,7 +89,6 @@ def calculate_class_counts(dataset: torch.utils.data.Dataset, num_classes: int) 
     counts = {i: 0 for i in range(num_classes)}
 
     import torch.utils.data
-    import torchvision.datasets
     
     # Handle Subset wrapper around ImageFolder
     if isinstance(dataset, torch.utils.data.Subset):
@@ -227,6 +227,27 @@ def main() -> None:
     )
     logging.info(f"Model successfully saved to {save_path}")
 
+    # Save the training history to a CSV file
+    metrics_dir = Path("artifacts/metrics")
+    metrics_dir.mkdir(parents=True, exist_ok=True)
+    history_csv_path = metrics_dir / "training_history.csv"
+    
+    with open(history_csv_path, mode="w", newline="") as csv_file:
+        writer = csv.writer(csv_file)
+        # Write the header
+        writer.writerow(["epoch", "train_loss", "train_acc", "val_loss", "val_acc"])
+        
+        # Write the data rows
+        for i in range(len(history["train_loss"])):
+            writer.writerow([
+                i + 1,
+                f"{history['train_loss'][i]:.4f}",
+                f"{history['train_acc'][i]:.4f}",
+                f"{history['val_loss'][i]:.4f}",
+                f"{history['val_acc'][i]:.4f}"
+            ])
+    
+    logging.info(f"Training history successfully saved to {history_csv_path}")
 
 if __name__ == "__main__":
     main()
