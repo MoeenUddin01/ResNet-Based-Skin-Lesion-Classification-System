@@ -146,7 +146,7 @@ Jupyter notebooks for exploratory work; not part of the production pipeline.
 | `pydantic` | Request/response schema validation |
 | `ruff` | Linting and formatting |
 
-🚨 Strict File Modification Policy
+<!-- 🚨 Strict File Modification Policy
 
 Claude must follow a strict single-file editing policy:
 
@@ -166,4 +166,92 @@ Explain why another file would be affected.
 
 Ask for explicit permission before proceeding.
 
-Claude must treat all non-requested files as read-only.
+Claude must treat all non-requested files as read-only. -->
+
+
+🚨 Execution Policy
+
+Claude may propose multi-file plans in planning mode.
+
+However:
+
+- Only modify files explicitly requested by the user.
+- Ask for explicit permission before modifying additional files.
+- Do not create, delete, or rename files without explicit instruction.
+- During execution, treat all non-requested files as read-only.
+
+If a requested change requires modifying another file:
+- Explain why it is necessary.
+- Ask for approval before proceeding.
+
+________________________________________________----------____________________________________________________---------_______
+
+
+## Application Layer Structure Rule
+
+All machine learning projects must include an `app/` directory responsible for serving the trained model through an API and user interface.
+
+The `app/` directory must follow this structure:
+
+app/
+├── main.py
+├── dependencies.py
+├── middleware.py
+├── model_loader.py
+├── predict.py
+├── schemas.py
+└── templates/
+└── index.html
+
+### Responsibilities of Each File
+
+**main.py**
+
+* Entry point of the API service.
+* Initializes the FastAPI application.
+* Registers routes and middleware.
+
+**dependencies.py**
+
+* Contains reusable FastAPI dependency functions.
+* Handles shared resources like model loading or configuration injection.
+
+**middleware.py**
+
+* Contains custom middleware such as logging, request tracking, or CORS configuration.
+
+**model_loader.py**
+
+* Responsible for loading the trained machine learning model.
+* Must not perform training.
+* Only loads model weights from the artifacts directory.
+
+**predict.py**
+
+* Contains the prediction logic.
+* Receives input data, preprocesses it if necessary, and returns model predictions.
+
+**schemas.py**
+
+* Defines request and response schemas using Pydantic models.
+
+**templates/**
+
+* Contains HTML templates for the web interface.
+* Used when serving a simple UI alongside the API.
+
+### Architectural Rules
+
+1. The `app/` directory must only contain **serving and inference logic**.
+2. No model training code is allowed inside `app/`.
+3. Training code must remain in `src/model/` or `src/pipelines/`.
+4. The `model_loader.py` file must load models from `artifacts/`.
+5. API routes must be defined in `main.py` and call functions from `predict.py`.
+
+### Purpose
+
+This separation ensures that:
+
+* Training logic remains in `src/`
+* Deployment logic remains in `app/`
+* The project stays modular and production-ready.

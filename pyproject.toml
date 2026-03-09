@@ -13,4 +13,5 @@ dependencies = [
    "ruff==0.15.2",
    "uvicorn==0.41.0",
    "pyyaml>=6.0.3",
+   "tqdm==4.66.1"
 ]
