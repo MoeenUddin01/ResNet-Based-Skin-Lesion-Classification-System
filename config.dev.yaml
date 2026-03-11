@@ -19,3 +19,6 @@ data:
   test_dir: "dataset/split"   # evaluator looks for a 'test/' subfolder inside this path
   img_size: [224, 224]
   subset_fraction: 0.1        # Values from 0.0 to 1.0. e.g., 0.1 uses 10% of the data.
+
+mlflow:
+  experiment_name: "skin-lesion-resnet152"
