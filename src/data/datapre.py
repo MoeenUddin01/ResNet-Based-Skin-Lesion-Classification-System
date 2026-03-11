@@ -95,17 +95,44 @@ def combine_and_organize_data(
 
 
 if __name__ == "__main__":
-    # Base paths properly split across lines to remain under 88 characters
-    BASE_DIR = Path(
-        "/home/moeenuddin/Desktop/Deep_learning/Skin_Lesion"
-        "/ResNet-Based-Skin-Lesion-Classification-System"
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Combine and organise raw HAM10000 images into class folders."
     )
-    RAW_DATA_DIR = BASE_DIR / "dataset" / "raw"
-    PROCESSED_DATA_DIR = BASE_DIR / "dataset" / "processed"
-    METADATA_FILE = RAW_DATA_DIR / "HAM10000_metadata.csv"
+    parser.add_argument(
+        "--raw-dir",
+        type=str,
+        default="dataset/raw",
+        help="Path to the raw dataset directory containing the image parts.",
+    )
+    parser.add_argument(
+        "--processed-dir",
+        type=str,
+        default="dataset/processed",
+        help="Output directory for the class-organised images.",
+    )
+    parser.add_argument(
+        "--metadata-csv",
+        type=str,
+        default=None,
+        help=(
+            "Path to HAM10000_metadata.csv. "
+            "Defaults to <raw-dir>/HAM10000_metadata.csv."
+        ),
+    )
+    args = parser.parse_args()
+
+    raw_dir = Path(args.raw_dir)
+    processed_dir = Path(args.processed_dir)
+    metadata_csv = (
+        Path(args.metadata_csv)
+        if args.metadata_csv
+        else raw_dir / "HAM10000_metadata.csv"
+    )
 
     combine_and_organize_data(
-        raw_dir=RAW_DATA_DIR,
-        processed_dir=PROCESSED_DATA_DIR,
-        metadata_csv=METADATA_FILE,
+        raw_dir=raw_dir,
+        processed_dir=processed_dir,
+        metadata_csv=metadata_csv,
     )

@@ -132,6 +132,62 @@ AUC curve PNGs are also saved locally to `artifacts/testing_result/auc_curves/`.
 
 ---
 
+## Training on Kaggle
+
+Use `config.kaggle.yaml` to train on Kaggle GPU with the HAM10000 dataset mounted from Kaggle directly. Run these cells in order in your Kaggle notebook:
+
+**Cell 1 — Clone repo & install dependencies:**
+```bash
+!git clone https://github.com/MoeenUddin01/ResNet-Based-Skin-Lesion-Classification-System.git /kaggle/working/project
+%cd /kaggle/working/project
+!pip install -q mlflow scikit-learn python-dotenv pyyaml tqdm
+```
+
+**Cell 2 — Set MLflow credentials from Kaggle Secrets:**
+```python
+import os
+from kaggle_secrets import UserSecretsClient
+secrets = UserSecretsClient()
+os.environ["MLFLOW_TRACKING_URI"]      = secrets.get_secret("MLFLOW_TRACKING_URI")
+os.environ["MLFLOW_TRACKING_USERNAME"] = secrets.get_secret("MLFLOW_TRACKING_USERNAME")
+os.environ["MLFLOW_TRACKING_PASSWORD"] = secrets.get_secret("MLFLOW_TRACKING_PASSWORD")
+```
+
+**Cell 3 — Stage data to writable directory:**
+```python
+import shutil
+from pathlib import Path
+KAGGLE_INPUT = Path("/kaggle/input/datasets/kmader/skin-cancer-mnist-ham10000")
+RAW_DIR = Path("/kaggle/working/raw")
+RAW_DIR.mkdir(parents=True, exist_ok=True)
+for src, dst in [("HAM10000_images_part_1", "ham10000_images_part_1"),
+                 ("HAM10000_images_part_2", "ham10000_images_part_2")]:
+    if not (RAW_DIR / dst).exists():
+        shutil.copytree(str(KAGGLE_INPUT / src), str(RAW_DIR / dst))
+shutil.copy(str(KAGGLE_INPUT / "HAM10000_metadata.csv"), str(RAW_DIR / "HAM10000_metadata.csv"))
+```
+
+**Cell 4 — Organise, split, train, and evaluate:**
+```bash
+!python -m src.data.datapre \
+  --raw-dir /kaggle/working/raw \
+  --processed-dir /kaggle/working/processed
+
+!python -m src.pipeline.split_data \
+  --processed-dir /kaggle/working/processed \
+  --output-dir /kaggle/working/split
+
+!python -m src.pipeline.model_training --config config.kaggle.yaml
+
+!python -m src.pipeline.model_evaluation \
+  --config config.kaggle.yaml \
+  --model-path artifacts/models/<your-checkpoint>.pth
+```
+
+> **Note:** Add `MLFLOW_TRACKING_URI`, `MLFLOW_TRACKING_USERNAME`, and `MLFLOW_TRACKING_PASSWORD` as Kaggle Secrets before running (notebook sidebar → Add-ons → Secrets).
+
+---
+
 ## Serving and App Demo
 
 **Run the Streamlit app:**

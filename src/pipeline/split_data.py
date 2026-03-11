@@ -24,7 +24,7 @@ def split_dataset(
     seed: int = 42,
 ) -> None:
     """Splits the processed dataset into train, val, and test subsets.
-    
+
     The testing data will exactly contain `test_size` fraction of the total data.
     The remaining data will be split according to `val_ratio`, which dictates
     the validation fraction out of that remaining subgroup.
@@ -66,10 +66,10 @@ def split_dataset(
         random.shuffle(images)
 
         total_images = len(images)
-        
+
         # Take exactly test_size out of the full dataset
         num_test = int(total_images * test_size)
-        
+
         # Calculate train/val from the REMAINING data
         remaining_images_count = total_images - num_test
         num_val = int(remaining_images_count * val_ratio)
@@ -104,16 +104,47 @@ def _copy_images(images: list[Path], target_dir: Path) -> None:
 
 
 if __name__ == "__main__":
-    BASE_DIR = Path(
-        "/home/moeenuddin/Desktop/Deep_learning/Skin_Lesion/"
-        "ResNet-Based-Skin-Lesion-Classification-System"
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Split the processed HAM10000 dataset into train/val/test."
     )
-    PROCESSED_DATA_DIR = BASE_DIR / "dataset" / "processed"
-    SPLIT_DATA_DIR = BASE_DIR / "dataset" / "split"
+    parser.add_argument(
+        "--processed-dir",
+        type=str,
+        default="dataset/processed",
+        help="Path to the processed class-organised dataset.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default="dataset/split",
+        help="Output directory for the train/val/test split.",
+    )
+    parser.add_argument(
+        "--test-size",
+        type=float,
+        default=0.1,
+        help="Fraction of data to hold out for testing (default: 0.1).",
+    )
+    parser.add_argument(
+        "--val-ratio",
+        type=float,
+        default=0.3,
+        help="Fraction of remaining data for validation (default: 0.3).",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed for reproducibility (default: 42).",
+    )
+    args = parser.parse_args()
 
     split_dataset(
-        processed_dir=PROCESSED_DATA_DIR,
-        output_dir=SPLIT_DATA_DIR,
-        test_size=0.1,  # 10% exactly as requested for test
-        val_ratio=0.3   # 30% of the remaining data for val (which is .3 * .9 = 27% total)
+        processed_dir=Path(args.processed_dir),
+        output_dir=Path(args.output_dir),
+        test_size=args.test_size,
+        val_ratio=args.val_ratio,
+        seed=args.seed,
     )

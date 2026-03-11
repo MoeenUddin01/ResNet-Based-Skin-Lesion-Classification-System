@@ -1,0 +1,23 @@
+hardware:
+  use_cuda: true          # Kaggle provides GPU — always use it
+  num_workers: 4
+
+model:
+  pretrained: true
+  num_classes: 7
+  freeze_backbone: false  # Full fine-tune on GPU (unlike local CPU run)
+
+training:
+  batch_size: 64          # Larger batch — Kaggle GPU has more VRAM
+  learning_rate: 0.001
+  epochs: 20
+  weight_decay: 0.0001
+  patience: 5
+
+data:
+  split_dir: "/kaggle/working/split"
+  test_dir: "/kaggle/working/split"
+  img_size: [224, 224]
+
+mlflow:
+  experiment_name: "skin-lesion-resnet152-kaggle"
