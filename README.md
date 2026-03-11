@@ -91,6 +91,47 @@ The evaluator automatically:
 | `per_class_metrics.csv` | Precision, recall, F1, and support for each of the 7 lesion classes |
 | `summary.csv` | Overall accuracy and loss per run (appended so you can compare multiple checkpoints) |
 
+## MLflow Experiment Tracking (DagShub)
+
+Both the training and evaluation pipelines log metrics, params, and artifacts to **MLflow** backed by **DagShub**.
+
+### One-time Setup
+
+1. **Fill in your DagShub repo URL** in both `config.yaml` and `config.dev.yaml`:
+   ```yaml
+   mlflow:
+     tracking_uri: "https://dagshub.com/<your-username>/<your-repo>.mlflow"
+     experiment_name: "skin-lesion-resnet152"
+   ```
+
+2. **Set authentication** via environment variables (or add to `.env`):
+   ```bash
+   export MLFLOW_TRACKING_USERNAME=<your-dagshub-username>
+   export MLFLOW_TRACKING_PASSWORD=<your-dagshub-token>
+   ```
+   Get your token from **DagShub → Settings → Tokens**.
+
+### What Gets Logged
+
+| Pipeline | Metrics | Artifacts |
+|---|---|---|
+| **Training** | `train_loss`, `train_acc`, `val_loss`, `val_acc` per epoch; `best_val_acc`, `best_val_loss` | Best `.pth` checkpoint |
+| **Evaluation** | `test_accuracy`, `test_loss`, `macro_auc`; per-class precision / recall / F1 / AUC | `per_class_metrics.csv`, `summary.csv`, 7 AUC curve PNGs |
+
+### DagShub Charts
+
+| # | Chart | How it appears |
+|---|---|---|
+| 1 | Training accuracy vs epochs | `train_acc` metric (step = epoch) |
+| 2 | Validation accuracy vs epochs | `val_acc` metric (step = epoch) |
+| 3 | Test accuracy | `test_accuracy` scalar (single point per evaluation run) |
+| 4 | Train loss vs val loss vs epochs | `train_loss` + `val_loss` metrics (step = epoch) |
+| 5 | ROC-AUC curves | PNG artifacts in `auc_curves/` folder |
+
+AUC curve PNGs are also saved locally to `artifacts/testing_result/auc_curves/`.
+
+---
+
 ## Serving and App Demo
 
 **Run the Streamlit app:**

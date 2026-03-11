@@ -18,3 +18,6 @@ data:
   split_dir: "dataset/split"
   test_dir: "dataset/split"  # evaluator looks for a 'test/' subfolder inside this path
   img_size: [224, 224]
+
+mlflow:
+  experiment_name: "skin-lesion-resnet152"
