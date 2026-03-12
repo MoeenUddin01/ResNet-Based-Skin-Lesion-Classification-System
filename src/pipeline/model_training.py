@@ -392,6 +392,7 @@ def main() -> None:
             train_loader,
             val_loader,
             epochs=train_cfg["epochs"],
+            log_mlflow=True,
         )
 
         # Log per-epoch metrics (Charts 1, 2, 4)
