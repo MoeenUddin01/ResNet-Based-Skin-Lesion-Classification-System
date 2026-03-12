@@ -5,6 +5,7 @@ Model training utilities for skin lesion classification.
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
 
 import torch
@@ -191,6 +192,8 @@ class ModelTrainer:
 
         logging.info(f"Starting training loop for {epochs} epochs on device: {self.device}")
 
+        best_val_acc = 0.0
+
         for epoch in range(epochs):
             train_loss, train_acc = self.train_epoch(train_loader)
             val_loss, val_acc = self.evaluate(val_loader)
@@ -200,6 +203,23 @@ class ModelTrainer:
             history["val_loss"].append(val_loss)
             history["val_acc"].append(val_acc)
 
+            import mlflow
+            if mlflow.active_run():
+                mlflow.log_metrics(
+                    {
+                        "train_loss": train_loss,
+                        "train_acc": train_acc,
+                        "val_loss": val_loss,
+                        "val_acc": val_acc,
+                    },
+                    step=epoch + 1,
+                )
+
+            if val_acc > best_val_acc:
+                best_val_acc = val_acc
+                torch.save(self.model.state_dict(), "best_model.pth")
+                logging.info(f"New best model saved! Epoch: {epoch+1}, Val Acc: {val_acc:.4f}")
+
             logging.info(
                 f"Epoch [{epoch+1}/{epochs}] | "
                 f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f} | "
@@ -207,4 +227,9 @@ class ModelTrainer:
             )
 
         logging.info("Training loop completed.")
+        
+        import mlflow
+        if mlflow.active_run() and os.path.exists("best_model.pth"):
+            mlflow.log_artifact("best_model.pth", artifact_path="model")
+
         return history
