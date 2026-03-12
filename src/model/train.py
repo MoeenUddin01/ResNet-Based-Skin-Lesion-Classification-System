@@ -218,7 +218,7 @@ class ModelTrainer:
             if val_acc > best_val_acc:
                 best_val_acc = val_acc
                 torch.save(self.model.state_dict(), "best_model.pth")
-                logging.info(f"New best model saved! Epoch: {epoch+1}, Val Acc: {val_acc:.4f}")
+                logging.info(f"New best model saved with val_acc={val_acc:.4f}")
 
             logging.info(
                 f"Epoch [{epoch+1}/{epochs}] | "
