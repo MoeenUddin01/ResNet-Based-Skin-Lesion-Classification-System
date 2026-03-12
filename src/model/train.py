@@ -13,14 +13,10 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from tqdm import tqdm
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 
-def get_weighted_loss(
-    class_counts: list[int], device: torch.device
-) -> nn.CrossEntropyLoss:
+def get_weighted_loss(class_counts: list[int], device: torch.device) -> nn.CrossEntropyLoss:
     """Computes a weighted cross-entropy loss to handle class imbalance.
 
     Weights are calculated as the inverse of the class frequencies.
@@ -39,7 +35,7 @@ def get_weighted_loss(
         for count in class_counts
     ]
     weight_tensor = torch.tensor(weights, dtype=torch.float32, device=device)
-
+    
     logging.info(f"Initialized weighted loss with weights: {weights}")
     return nn.CrossEntropyLoss(weight=weight_tensor)
 
@@ -64,12 +60,11 @@ def apply_minority_augmentation(
     augmented_images = images.clone()
     for i in range(len(labels)):
         if labels[i].item() in minority_classes:
-            # Apply augmentation (requires images to not be strictly batched
-            # or handled properly). Since torchvision transforms usually expect
-            # PIL or untrimmed tensors, we rely on transforms that support
-            # C,H,W tensors directly.
+            # Apply augmentation (requires images to not be strictly batched or handled properly)
+            # Since torchvision transforms usually expect PIL or untrimmed tensors, 
+            # we rely on transforms that support C,H,W tensors directly.
             augmented_images[i] = augmentation_transform(augmented_images[i])
-
+            
     return augmented_images
 
 
@@ -106,24 +101,15 @@ class ModelTrainer:
             # Add further tensor-compatible augmentations if needed
         ])
 
-    def train_epoch(
-        self,
-        dataloader: DataLoader,
-        global_step: int = 0,
-        log_mlflow: bool = False,
-    ) -> tuple[float, float, int]:
+    def train_epoch(self, dataloader: DataLoader) -> tuple[float, float]:
         """Runs a single epoch of training.
 
         Args:
             dataloader: DataLoader providing the training batches.
-            global_step: The starting global batch step for MLflow logging.
-            log_mlflow: Whether to log batch metrics to an active MLflow run.
 
         Returns:
-            A tuple of (average_loss, accuracy, final_global_step).
+            A tuple of (average_loss, accuracy).
         """
-        import mlflow
-
         self.model.train()
         total_loss = 0.0
         correct_preds = 0
@@ -146,26 +132,14 @@ class ModelTrainer:
             loss.backward()
             self.optimizer.step()
 
-            batch_size = images.size(0)
-            total_loss += loss.item() * batch_size
+            total_loss += loss.item() * images.size(0)
             _, preds = torch.max(outputs, 1)
-            batch_correct = torch.sum(preds == labels.data).item()
-            correct_preds += batch_correct
-            total_samples += batch_size
-
-            global_step += 1
-
-            if log_mlflow:
-                batch_loss = loss.item()
-                batch_acc = batch_correct / batch_size
-                mlflow.log_metrics(
-                    {"train_batch_loss": batch_loss, "train_batch_acc": batch_acc},
-                    step=global_step,
-                )
+            correct_preds += torch.sum(preds == labels.data).item()
+            total_samples += images.size(0)
 
         epoch_loss = total_loss / total_samples
         epoch_acc = correct_preds / total_samples
-        return epoch_loss, epoch_acc, global_step
+        return epoch_loss, epoch_acc
 
     def evaluate(self, dataloader: DataLoader) -> tuple[float, float]:
         """Evaluates the model on a validation or test set.
@@ -199,20 +173,13 @@ class ModelTrainer:
         eval_acc = correct_preds / total_samples
         return eval_loss, eval_acc
 
-    def train_loop(
-        self,
-        train_loader: DataLoader,
-        val_loader: DataLoader,
-        epochs: int,
-        log_mlflow: bool = False,
-    ) -> dict[str, list[float]]:
+    def train_loop(self, train_loader: DataLoader, val_loader: DataLoader, epochs: int) -> dict[str, list[float]]:
         """Executes the full training and validation loop over multiple epochs.
 
         Args:
             train_loader: The DataLoader for the training set.
             val_loader: The DataLoader for the validation set.
             epochs: The number of epochs to train.
-            log_mlflow: Whether to log batch metrics to an active MLflow run.
 
         Returns:
             A dictionary containing historical loss and accuracy lists.
@@ -222,16 +189,10 @@ class ModelTrainer:
             "val_loss": [], "val_acc": []
         }
 
-        logging.info(
-            f"Starting training loop for {epochs} epochs on device: {self.device}"
-        )
-
-        global_step = 0
+        logging.info(f"Starting training loop for {epochs} epochs on device: {self.device}")
 
         for epoch in range(epochs):
-            train_loss, train_acc, global_step = self.train_epoch(
-                train_loader, global_step=global_step, log_mlflow=log_mlflow
-            )
+            train_loss, train_acc = self.train_epoch(train_loader)
             val_loss, val_acc = self.evaluate(val_loader)
 
             history["train_loss"].append(train_loss)
