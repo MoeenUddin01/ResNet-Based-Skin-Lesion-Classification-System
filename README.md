@@ -55,7 +55,8 @@ The training pipeline uses a custom ResNet-152 wrapper that handles class weight
 The script will automatically detect device capabilities, apply dataset subsetting and weighted cross-entropy loss based on class imbalances, display dynamic progress bars, and log epoch metrics.
 
 Once training finishes:
-- **Best model weights** (highest validation accuracy) are saved to `artifacts/models/` with the filename pattern `best_model_ep{epoch}_acc{accuracy}_loss{loss}.pth`.
+- **Best model checkpointing**: The script continuously monitors your model's validation accuracy at the end of every epoch. The weights that achieve the absolute highest `val_acc` during the run are automatically saved as `best_model.pth` to ensure the optimal model is retained (preventing overfitting).
+- The `best_model.pth` file is also automatically uploaded directly to your **DagShub MLflow Artifacts** store so it is backed up in the cloud.
 
 ## Model Evaluation
 
@@ -115,7 +116,7 @@ Both the training and evaluation pipelines log metrics, params, and artifacts to
 
 | Pipeline | Metrics | Artifacts |
 |---|---|---|
-| **Training** | `train_loss`, `train_acc`, `val_loss`, `val_acc` per epoch; `best_val_acc`, `best_val_loss` | Best `.pth` checkpoint |
+| **Training** | `train_loss`, `train_acc`, `val_loss`, `val_acc` per epoch; `best_val_acc`, `best_val_loss` | `best_model.pth` (uploaded automatically based on highest val_acc per-epoch) |
 | **Evaluation** | `test_accuracy`, `test_loss`, `macro_auc`; per-class precision / recall / F1 / AUC | `per_class_metrics.csv`, `summary.csv`, 7 AUC curve PNGs |
 
 ### DagShub Charts
