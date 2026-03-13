@@ -144,6 +144,7 @@ def get_test_loader(
     batch_size: int = 32,
     img_size: tuple[int, int] = (224, 224),
     num_workers: int = 4,
+    subset_fraction: float = 0.0,
 ) -> tuple[DataLoader, list[str]]:
     """Loads the test skin lesion dataset and returns a DataLoader.
 
@@ -152,6 +153,7 @@ def get_test_loader(
         batch_size: The number of images per batch.
         img_size: The target image size as a (height, width) tuple.
         num_workers: The number of subprocesses to use for data loading.
+        subset_fraction: If > 0.0, limits the dataset to this percentage of samples.
 
     Returns:
         A tuple containing:
@@ -175,7 +177,25 @@ def get_test_loader(
     )
 
     test_dataset = datasets.ImageFolder(root=str(test_dir), transform=transform)
+    class_names = test_dataset.classes
     pin_memory = torch.cuda.is_available()
+
+    if subset_fraction > 0.0:
+        from collections import defaultdict
+        
+        def get_stratified_indices(dataset: datasets.ImageFolder) -> list[int]:
+            class_indices = defaultdict(list)
+            for idx, (_, class_idx) in enumerate(dataset.samples):
+                class_indices[class_idx].append(idx)
+            
+            stratified_indices = []
+            for class_idx, indices in class_indices.items():
+                num_samples = max(1, int(len(indices) * subset_fraction))
+                stratified_indices.extend(indices[:num_samples])
+            return stratified_indices
+            
+        test_indices = get_stratified_indices(test_dataset)
+        test_dataset = torch.utils.data.Subset(test_dataset, test_indices)
 
     test_loader = DataLoader(
         test_dataset,
@@ -185,7 +205,7 @@ def get_test_loader(
         pin_memory=pin_memory,
     )
 
-    return test_loader, test_dataset.classes
+    return test_loader, class_names
 
 
 if __name__ == "__main__":

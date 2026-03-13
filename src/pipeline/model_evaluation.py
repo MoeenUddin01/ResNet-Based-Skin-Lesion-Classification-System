@@ -161,6 +161,7 @@ class ModelEvaluator:
             batch_size=self.config["training"].get("batch_size", 32),
             img_size=tuple(data_cfg["img_size"]),
             num_workers=hw_cfg.get("num_workers", 4),
+            subset_fraction=data_cfg.get("subset_fraction", 0.0),
         )
         self.test_loader = test_loader
         self.class_names = class_names
@@ -305,6 +306,14 @@ class ModelEvaluator:
                     "auc": cls_auc,
                 }
             )
+        macro_precision = float(np.mean([p["precision"] for p in per_class]))
+        macro_recall = float(np.mean([p["recall"] for p in per_class]))
+        macro_f1 = float(np.mean([p["f1"] for p in per_class]))
+        
+        weights = [p["support"] for p in per_class]
+        weighted_precision = float(np.average([p["precision"] for p in per_class], weights=weights)) if sum(weights) > 0 else 0.0
+        weighted_recall = float(np.average([p["recall"] for p in per_class], weights=weights)) if sum(weights) > 0 else 0.0
+        weighted_f1 = float(np.average([p["f1"] for p in per_class], weights=weights)) if sum(weights) > 0 else 0.0
 
         logging.info(
             f"Evaluation complete — Loss: {overall_loss:.4f}, "
@@ -318,6 +327,12 @@ class ModelEvaluator:
             "all_labels": all_labels,
             "all_probs": all_probs,
             "macro_auc": macro_auc,
+            "macro_precision": macro_precision,
+            "macro_recall": macro_recall,
+            "macro_f1": macro_f1,
+            "weighted_precision": weighted_precision,
+            "weighted_recall": weighted_recall,
+            "weighted_f1": weighted_f1,
         }
 
     # ------------------------------------------------------------------
@@ -406,6 +421,17 @@ class ModelEvaluator:
             KeyError: If *results* does not contain the expected keys.
         """
         self.results_dir.mkdir(parents=True, exist_ok=True)
+
+        overall_txt = self.results_dir / "overalll_result.txt"
+        with open(overall_txt, "w") as f:
+            f.write(f"Test Accuracy: {results['overall_accuracy']:.4f}\n")
+            f.write(f"Macro Precision: {results['macro_precision']:.4f}\n")
+            f.write(f"Macro Recall: {results['macro_recall']:.4f}\n")
+            f.write(f"Macro F1-Score: {results['macro_f1']:.4f}\n")
+            f.write(f"Weighted Precision: {results['weighted_precision']:.4f}\n")
+            f.write(f"Weighted Recall: {results['weighted_recall']:.4f}\n")
+            f.write(f"Weighted F1-Score: {results['weighted_f1']:.4f}\n")
+        logging.info(f"Overall results saved to {overall_txt}")
 
         per_class_csv = self.results_dir / "per_class_metrics.csv"
         per_class_data: list[dict] = results["per_class"]  # type: ignore[assignment]
