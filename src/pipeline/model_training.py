@@ -363,13 +363,18 @@ def main() -> None:
         weight_decay=train_cfg.get("weight_decay", 0.0),
     )
 
+    # Scheduler
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode='max', factor=0.5, patience=train_cfg.get("patience", 3)
+    )
+
     # Trainer
     trainer = ModelTrainer(
         model=model,
         device=device,
         criterion=criterion,
         optimizer=optimizer,
-        minority_classes=minority_classes,
+        scheduler=scheduler,
     )
 
     # ------------------------------------------------------------------

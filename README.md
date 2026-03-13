@@ -30,7 +30,11 @@ python -m src.pipeline.split_data
 
 ## Model Training
 
-The training pipeline uses a custom ResNet-152 wrapper that handles class weights and dynamic augmentation for minority classes.
+The training pipeline uses a custom ResNet-152 wrapper and robust data handling to prevent memorization and combat extreme class imbalance:
+- **WeightedRandomSampler**: Dynamically over-samples minority classes and under-samples majority classes to ensure perfectly balanced mini-batches.
+- **Robust Augmentation**: Global `train_transform`s (e.g., Random Resized Crops, Flips, Rotations, Color Jitters) prevent overfitting on the majority datasets.
+- **Model Regularization**: A `Dropout(p=0.5)` layer is embedded in the classification head, and training utilizes an L2 `weight_decay` of `0.001`.
+- **LR Scheduling**: The orchestrator employs a `ReduceLROnPlateau` scheduler to gracefully decay the learning rate if validation loss stalls.
 
 ### Short Guide: Training Your Model
 
@@ -52,7 +56,7 @@ The training pipeline uses a custom ResNet-152 wrapper that handles class weight
      uv run python -m src.pipeline.model_training --config config.dev.yaml
      ```
 
-The script will automatically detect device capabilities, apply dataset subsetting and weighted cross-entropy loss based on class imbalances, display dynamic progress bars, and log epoch metrics.
+The script will automatically set up the `WeightedRandomSampler`, configure robust data augmentations, apply the weighted cross-entropy loss, start the `ReduceLROnPlateau` scheduler, display dynamic progress bars, and log epoch metrics.
 
 Once training finishes:
 - **Best model checkpointing**: The script continuously monitors your model's validation accuracy at the end of every epoch. The weights that achieve the absolute highest `val_acc` during the run are automatically saved as `best_model.pth` to ensure the optimal model is retained (preventing overfitting).

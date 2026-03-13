@@ -214,3 +214,6 @@ dataset/
 artifacts/
 #env
 .env
+
+#bestmodel
+best_model.pth

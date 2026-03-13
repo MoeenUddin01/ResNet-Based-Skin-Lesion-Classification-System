@@ -47,7 +47,10 @@ class ResNet152Model(nn.Module):
         layer matching the target number of classes.
         """
         in_features = self.model.fc.in_features
-        self.model.fc = nn.Linear(in_features, self.num_classes)
+        self.model.fc = nn.Sequential(
+            nn.Dropout(p=0.5),
+            nn.Linear(in_features, self.num_classes)
+        )
 
     def freeze_layers(self) -> None:
         """Freezes all layers except the fully connected classification head.

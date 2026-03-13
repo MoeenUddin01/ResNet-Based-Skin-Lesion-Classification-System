@@ -41,16 +41,34 @@ def get_data_loaders(
             raise ValueError(f"Required data directory does not exist: {d}")
 
     # ImageNet normalization stats
-    transform = transforms.Compose(
+    normalize = transforms.Normalize(
+        mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+    )
+
+    # Strong augmentations for training
+    train_transform = transforms.Compose(
         [
-            transforms.Resize(img_size),
+            transforms.RandomResizedCrop(img_size, scale=(0.8, 1.0)),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomVerticalFlip(),
+            transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.05),
+            transforms.RandomRotation(15),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            normalize,
         ]
     )
 
-    train_dataset = datasets.ImageFolder(root=str(train_dir), transform=transform)
-    val_dataset = datasets.ImageFolder(root=str(val_dir), transform=transform)
+    # Standard resizes/crops for validation
+    val_transform = transforms.Compose(
+        [
+            transforms.Resize(img_size),
+            transforms.ToTensor(),
+            normalize,
+        ]
+    )
+
+    train_dataset = datasets.ImageFolder(root=str(train_dir), transform=train_transform)
+    val_dataset = datasets.ImageFolder(root=str(val_dir), transform=val_transform)
 
     class_names = train_dataset.classes
     pin_memory = torch.cuda.is_available()
@@ -77,10 +95,35 @@ def get_data_loaders(
         train_dataset = torch.utils.data.Subset(train_dataset, train_indices)
         val_dataset = torch.utils.data.Subset(val_dataset, val_indices)
 
+    # Handle class imbalance for the entire loader via sampling
+    from collections import Counter
+    from torch.utils.data import WeightedRandomSampler
+
+    # Calculate class counts from the actual training subset
+    if isinstance(train_dataset, torch.utils.data.Subset):
+        train_targets = [train_dataset.dataset.targets[i] for i in train_dataset.indices]
+    else:
+        train_targets = train_dataset.targets
+
+    class_counts = Counter(train_targets)
+    total_samples = len(train_targets)
+    
+    # Calculate weights per class and assign to each sample in the dataset
+    class_weights = {
+        cls: total_samples / count for cls, count in class_counts.items()
+    }
+    sample_weights = [class_weights[t] for t in train_targets]
+
+    sampler = WeightedRandomSampler(
+        weights=sample_weights,
+        num_samples=len(sample_weights),
+        replacement=True
+    )
+
     train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
-        shuffle=True,
+        sampler=sampler,
         num_workers=num_workers,
         pin_memory=pin_memory,
     )

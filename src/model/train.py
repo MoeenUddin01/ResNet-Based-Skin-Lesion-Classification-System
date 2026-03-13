@@ -41,34 +41,6 @@ def get_weighted_loss(class_counts: list[int], device: torch.device) -> nn.Cross
     return nn.CrossEntropyLoss(weight=weight_tensor)
 
 
-def apply_minority_augmentation(
-    images: torch.Tensor,
-    labels: torch.Tensor,
-    minority_classes: list[int],
-    augmentation_transform: Any
-) -> torch.Tensor:
-    """Applies on-the-fly augmentation to images of minority classes in a batch.
-
-    Args:
-        images: Batch of image tensors.
-        labels: Batch of labels.
-        minority_classes: A list of class indices considered as minority.
-        augmentation_transform: A torchvision transform to apply.
-
-    Returns:
-        The augmented batch of images.
-    """
-    augmented_images = images.clone()
-    for i in range(len(labels)):
-        if labels[i].item() in minority_classes:
-            # Apply augmentation (requires images to not be strictly batched or handled properly)
-            # Since torchvision transforms usually expect PIL or untrimmed tensors, 
-            # we rely on transforms that support C,H,W tensors directly.
-            augmented_images[i] = augmentation_transform(augmented_images[i])
-            
-    return augmented_images
-
-
 class ModelTrainer:
     """Handles the training loop for the skin lesion classification model."""
 
@@ -78,7 +50,7 @@ class ModelTrainer:
         device: torch.device,
         criterion: nn.Module,
         optimizer: torch.optim.Optimizer,
-        minority_classes: list[int] | None = None,
+        scheduler: torch.optim.lr_scheduler.LRScheduler | None = None,
     ) -> None:
         """Initializes the ModelTrainer.
 
@@ -87,20 +59,13 @@ class ModelTrainer:
             device: The device to run training upon (CPU or CUDA).
             criterion: The loss function (e.g., CrossEntropyLoss).
             optimizer: The optimizer used to update model weights.
-            minority_classes: List of minority class indices for targeted augmentation.
+            scheduler: Optional learning rate scheduler.
         """
         self.model = model.to(device)
         self.device = device
         self.criterion = criterion
         self.optimizer = optimizer
-        self.minority_classes = minority_classes or []
-
-        # Simple batched augmentation supporting tensors for minority classes
-        self.minority_transform = transforms.Compose([
-            transforms.RandomHorizontalFlip(p=0.5),
-            transforms.RandomRotation(degrees=15),
-            # Add further tensor-compatible augmentations if needed
-        ])
+        self.scheduler = scheduler
 
     def train_epoch(self, dataloader: DataLoader) -> tuple[float, float]:
         """Runs a single epoch of training.
@@ -118,11 +83,6 @@ class ModelTrainer:
 
         pbar = tqdm(dataloader, desc="Training Batch", leave=False)
         for images, labels in pbar:
-            if self.minority_classes:
-                images = apply_minority_augmentation(
-                    images, labels, self.minority_classes, self.minority_transform
-                )
-
             images = images.to(self.device, non_blocking=True)
             labels = labels.to(self.device, non_blocking=True)
 
@@ -211,9 +171,14 @@ class ModelTrainer:
                         "train_acc": train_acc,
                         "val_loss": val_loss,
                         "val_acc": val_acc,
+                        "learning_rate": self.optimizer.param_groups[0]["lr"],
                     },
                     step=epoch + 1,
                 )
+
+            if self.scheduler:
+                # Based on ReduceLROnPlateau which requires validation loss
+                self.scheduler.step(val_loss)
 
             if val_acc > best_val_acc:
                 best_val_acc = val_acc
