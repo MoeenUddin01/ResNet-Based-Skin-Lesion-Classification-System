@@ -195,12 +195,13 @@ shutil.copy(str(KAGGLE_INPUT / "HAM10000_metadata.csv"), str(RAW_DIR / "HAM10000
 
 ## Serving and App Demo
 
-**Run the Streamlit app:**
+The application comes with a production-ready **FastAPI** backend and a fully custom, highly-polished **React** UI out of the box.
+
+**Run the FastAPI server (with React UI):**
 ```bash
-streamlit run app/streamlit.py
+uv run uvicorn app.main:app --reload
 ```
 
-**Run the FastAPI server:**
-```bash
-uvicorn app.main:app --reload
-```
+Once running, navigate to `http://localhost:8000/` in your browser to interact with the AI Diagnostic Interface. You can upload an image from the `dataset` folder and the React frontend will map the ResNet-152 model predictions, providing a confidence band and dynamic probability visualizations.
+
+> **Note:** The older Streamlit demo may still be available via `streamlit run app/streamlit.py`, but the FastAPI + React application is the primary recommended interface.

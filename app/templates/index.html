@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skin Lesion Diagnostic AI</title>
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#1e293b',
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.4); }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useRef, useEffect } = React;
+
+        const DISEASE_NAMES = {
+            'akiec': 'Actinic Keratoses',
+            'bcc': 'Basal Cell Carcinoma',
+            'bkl': 'Benign Keratosis',
+            'df': 'Dermatofibroma',
+            'mel': 'Melanoma (Cancer)',
+            'nv': 'Melanocytic Nevi',
+            'vasc': 'Vascular Lesions'
+        };
+
+        const CANCER_CLASSES = ['mel', 'bcc', 'akiec'];
+
+        function App() {
+            const [file, setFile] = useState(null);
+            const [preview, setPreview] = useState(null);
+            const [loading, setLoading] = useState(false);
+            const [result, setResult] = useState(null);
+            const [error, setError] = useState(null);
+            const fileInputRef = useRef(null);
+
+            const handleFileChange = (e) => {
+                const selectedFile = e.target.files[0];
+                if (selectedFile) {
+                    setFile(selectedFile);
+                    setPreview(URL.createObjectURL(selectedFile));
+                    setResult(null);
+                    setError(null);
+                }
+            };
+
+            const handleDrop = (e) => {
+                e.preventDefault();
+                const selectedFile = e.dataTransfer.files[0];
+                if (selectedFile) {
+                    setFile(selectedFile);
+                    setPreview(URL.createObjectURL(selectedFile));
+                    setResult(null);
+                    setError(null);
+                }
+            };
+
+            const handlePredict = async () => {
+                if (!file) return;
+
+                setLoading(true);
+                setError(null);
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                try {
+                    const response = await fetch('/api/v1/predict', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        const err = await response.json();
+                        throw new Error(err.detail || 'Failed to predict');
+                    }
+
+                    const data = await response.json();
+                    setResult(data);
+                } catch (err) {
+                    setError(err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const renderVerdictBadge = (className, conf) => {
+                const isCancer = CANCER_CLASSES.includes(className);
+                const colorClass = isCancer ? 'bg-red-50 text-red-800 border-red-200' : 'bg-green-50 text-green-800 border-green-200';
+                const verdict = isCancer ? 'Potential Cancer Detected' : 'Benign / Non-Cancerous Insight';
+                
+                let confidenceBand = "Low";
+                if (conf > 0.85) confidenceBand = "High";
+                else if (conf > 0.5) confidenceBand = "Moderate";
+
+                return (
+                    <div className={`mt-5 p-5 rounded-2xl border flex flex-col items-center justify-center space-y-3 ${colorClass}`}>
+                        <div className={`px-5 py-2.5 rounded-full font-bold text-lg border-2 shadow-sm uppercase tracking-wide bg-white ${isCancer ? 'border-red-500 text-red-700' : 'border-emerald-500 text-emerald-700'}`}>
+                            {verdict}
+                        </div>
+                        <div className="text-sm font-semibold opacity-90 bg-white/50 px-3 py-1 rounded-md">
+                            AI Certainty: {confidenceBand} ({(conf*100).toFixed(1)}%)
+                        </div>
+                    </div>
+                );
+            };
+
+            return (
+                <div className="min-h-screen pt-12 pb-24 px-4 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-slate-50 relative">
+                    <div className="absolute inset-0 bg-gradient-to-b from-blue-100/40 to-slate-50/90 pointer-events-none"></div>
+                    
+                    <div className="max-w-5xl mx-auto space-y-10 relative z-10">
+                        <header className="text-center space-y-4">
+                            <h1 className="text-4xl md:text-6xl font-black text-slate-800 tracking-tight drop-shadow-sm">
+                                Skin Lesion <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">AI Diagnostic</span>
+                            </h1>
+                            <p className="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto font-medium">
+                                Fast, secure, and purely local ResNet-152 inference directly on your machine.
+                            </p>
+                        </header>
+
+                        <main className="glass hover:bg-white/80 transition-colors duration-500 rounded-[2rem] p-6 md:p-10 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] flex flex-col md:flex-row gap-10">
+                            
+                            {/* Upload Section */}
+                            <div className="flex-1 space-y-6">
+                                <div 
+                                    className="border-4 border-dashed border-blue-200 bg-blue-50/50 rounded-3xl p-10 flex flex-col items-center justify-center text-center hover:border-blue-400 hover:bg-blue-100/50 transition-all duration-300 cursor-pointer min-h-[360px] relative overflow-hidden group"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    onDragOver={(e) => e.preventDefault()}
+                                    onDrop={handleDrop}
+                                >
+                                    {preview ? (
+                                        <div className="absolute inset-0 z-10 bg-black/5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm">
+                                            <div className="bg-white/90 text-slate-800 px-6 py-3 rounded-full font-bold shadow-lg">Change Image</div>
+                                        </div>
+                                    ) : null}
+                                    
+                                    {preview ? (
+                                        <img src={preview} alt="Preview" className="absolute inset-0 w-full h-full object-cover rounded-2xl transition-transform duration-700 group-hover:scale-105" />
+                                    ) : (
+                                        <div className="space-y-5">
+                                            <div className="w-24 h-24 bg-white/80 rounded-full flex items-center justify-center mx-auto shadow-sm text-blue-500">
+                                                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-slate-700 text-xl">Upload Dermoscopic Image</p>
+                                                <p className="text-sm font-medium text-slate-500 mt-2">JPEG or PNG format</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                    <input 
+                                        type="file" 
+                                        className="hidden" 
+                                        ref={fileInputRef} 
+                                        accept="image/jpeg, image/png, image/jpg" 
+                                        onChange={handleFileChange}
+                                    />
+                                </div>
+
+                                <button 
+                                    onClick={handlePredict}
+                                    disabled={!file || loading}
+                                    className={`w-full py-5 rounded-2xl font-bold text-xl text-white shadow-xl transition-all duration-300 transform ${(!file || loading) ? 'bg-slate-300 cursor-not-allowed text-slate-500 shadow-none' : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:-translate-y-1 hover:shadow-2xl hover:brightness-110 active:translate-y-0'}`}
+                                >
+                                    {loading ? (
+                                        <span className="flex items-center justify-center gap-3">
+                                            <svg className="animate-spin -ml-1 mr-3 h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Analyzing Model Weights...
+                                        </span>
+                                    ) : 'Analyze Patient Image'}
+                                </button>
+                            </div>
+
+                            {/* Results Section */}
+                            <div className="flex-1 w-full bg-slate-50/80 rounded-3xl p-8 shadow-inner border border-slate-200/60 flex flex-col justify-center relative overflow-hidden backdrop-blur-md">
+                                {error && (
+                                    <div className="bg-red-50 text-red-700 p-6 rounded-2xl text-center font-bold border border-red-200 shadow-sm">
+                                        <svg className="w-10 h-10 mx-auto mb-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                        {error}
+                                    </div>
+                                )}
+
+                                {!result && !error && !loading && (
+                                    <div className="text-center text-slate-400 space-y-5">
+                                        <div className="w-24 h-24 mx-auto bg-slate-200 rounded-full flex items-center justify-center opacity-50">
+                                            <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                        </div>
+                                        <p className="font-semibold text-lg">Analysis results will appear here</p>
+                                    </div>
+                                )}
+
+                                {loading && (
+                                    <div className="text-center space-y-6 animate-pulse">
+                                        <div className="h-6 bg-slate-200/80 rounded-full w-2/3 mx-auto"></div>
+                                        <div className="h-10 bg-slate-300/80 rounded-xl w-3/4 mx-auto"></div>
+                                        <div className="space-y-3 mt-8">
+                                            {[1,2,3,4].map(i => (
+                                                <div key={i} className="h-4 bg-slate-200/80 rounded-full w-full"></div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {result && !loading && (
+                                    <div className="space-y-8 animate-fade-in-up">
+                                        <div className="text-center pb-2">
+                                            <div className="inline-block px-4 py-1.5 bg-slate-200 text-slate-600 font-bold text-xs uppercase tracking-widest rounded-full mb-4">Diagnosis Report</div>
+                                            <div className="text-4xl font-extrabold text-slate-800 leading-tight">
+                                                {DISEASE_NAMES[result.class_name] || result.class_name}
+                                            </div>
+                                            {renderVerdictBadge(result.class_name, result.confidence)}
+                                        </div>
+
+                                        <div className="space-y-4 pt-4 border-t border-slate-200/60">
+                                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Probability Distribution</h3>
+                                            {Object.entries(result.probabilities)
+                                                .sort((a, b) => b[1] - a[1])
+                                                .slice(0, 4) // Show top 4
+                                                .map(([cls, prob], idx) => (
+                                                <div key={cls} className="space-y-1.5 group">
+                                                    <div className="flex justify-between text-sm items-center">
+                                                        <span className={`font-semibold ${idx === 0 ? 'text-slate-800 text-base' : 'text-slate-600'}`}>{DISEASE_NAMES[cls] || cls}</span>
+                                                        <span className={`font-bold ${idx === 0 ? 'text-blue-600 text-base' : 'text-slate-500'}`}>{(prob * 100).toFixed(1)}%</span>
+                                                    </div>
+                                                    <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden shadow-inner flex">
+                                                        <div 
+                                                            className={`h-full rounded-full transition-all duration-1000 ease-out ${idx === 0 ? (CANCER_CLASSES.includes(cls) ? 'bg-gradient-to-r from-red-500 to-rose-600' : 'bg-gradient-to-r from-blue-500 to-indigo-600') : 'bg-slate-400'}`} 
+                                                            style={{ width: `${prob * 100}%` }}
+                                                        ></div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className="text-center">
+                                            <button onClick={() => { setFile(null); setPreview(null); setResult(null); }} className="text-blue-600 font-bold hover:underline text-sm uppercase tracking-wide">Start New Analysis</button>    
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </main>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+    <style>
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-up { animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    </style>
+</body>
+</html>

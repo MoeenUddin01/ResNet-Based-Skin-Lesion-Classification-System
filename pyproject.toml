@@ -24,6 +24,7 @@ dependencies = [
     "tqdm>=4.66",
     # API serving
     "fastapi>=0.115",
+    "python-multipart>=0.0.9",
     "uvicorn>=0.30",
     # Web demo
     "streamlit>=1.35",

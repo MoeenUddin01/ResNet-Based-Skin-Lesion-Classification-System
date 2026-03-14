@@ -1,0 +1,11 @@
+HAM10000 Dataset Class Distribution
+
+Based on the original dataset (10,015 total images):
+
+- nv (Melanocytic Nevi): 6,705 images
+- mel (Melanoma): 1,113 images
+- bkl (Benign Keratosis): 1,099 images
+- bcc (Basal Cell Carcinoma): 514 images
+- akiec (Actinic Keratoses): 327 images
+- vasc (Vascular Lesions): 142 images
+- df (Dermatofibroma): 115 images
