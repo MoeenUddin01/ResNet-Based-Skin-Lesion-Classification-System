@@ -195,13 +195,67 @@ shutil.copy(str(KAGGLE_INPUT / "HAM10000_metadata.csv"), str(RAW_DIR / "HAM10000
 
 ## Serving and App Demo
 
-The application comes with a production-ready **FastAPI** backend and a fully custom, highly-polished **React** UI out of the box.
+The application uses a **FastAPI** backend for model serving and a premium **Next.js** frontend for the user interface. Run both together for the full experience.
 
-**Run the FastAPI server (with React UI):**
+### 1. Start the FastAPI Backend
+
 ```bash
-uv run uvicorn app.main:app --reload
+source .venv/bin/activate
+uvicorn app.main:app --reload
 ```
 
-Once running, navigate to `http://localhost:8000/` in your browser to interact with the AI Diagnostic Interface. You can upload an image from the `dataset` folder and the React frontend will map the ResNet-152 model predictions, providing a confidence band and dynamic probability visualizations.
+The API will be available at `http://localhost:8000`. Interactive API docs are at `http://localhost:8000/docs`.
 
-> **Note:** The older Streamlit demo may still be available via `streamlit run app/streamlit.py`, but the FastAPI + React application is the primary recommended interface.
+| Endpoint | Method | Description |
+|---|---|---|
+| `/api/v1/predict` | `POST` | Upload an image, returns class, confidence, and all probabilities |
+| `/health` | `GET` | Health check |
+| `/docs` | `GET` | Auto-generated OpenAPI / Swagger UI |
+
+### 2. Start the Next.js Frontend
+
+In a **separate terminal**:
+
+```bash
+cd frontend
+npm install        # first time only
+npm run dev
+```
+
+Open **http://localhost:3000** in your browser.
+
+> The Next.js dev server automatically proxies `/api/v1/*` requests to `http://localhost:8000` — no manual CORS configuration needed.
+
+### Frontend Architecture (`frontend/`)
+
+Built with **Next.js 14 App Router**, **Tailwind CSS v4**, and **Framer Motion**.
+
+```
+frontend/
+├── app/
+│   ├── layout.tsx          # Inter + JetBrains Mono fonts, SEO metadata
+│   ├── page.tsx            # Main page assembling all sections
+│   └── globals.css         # Dark theme tokens, glass-card, gradient-text utilities
+├── components/
+│   ├── Navbar.tsx          # Glassmorphism sticky nav with mobile menu
+│   ├── HeroSection.tsx     # Full-viewport hero with staggered animations
+│   ├── ScrollCanvasSection.tsx  # Scroll-driven HTML5 canvas + parallax text
+│   ├── FeaturesGrid.tsx    # 6-card glassmorphism feature grid
+│   ├── UploadPanel.tsx     # Drag-and-drop upload with FastAPI integration
+│   ├── ResultsDisplay.tsx  # SVG ring chart + animated probability bars
+│   └── Footer.tsx          # Dark footer with tech stack badges
+├── types/
+│   └── prediction.ts       # TypeScript types + 7 HAM10000 class metadata
+└── next.config.ts          # API proxy rewrites → FastAPI backend
+```
+
+### UI Sections
+
+| Section | Features |
+|---|---|
+| **Hero** | Staggered word animation, background grid + blob effects, stats row |
+| **Scroll Canvas** | 40-frame procedural dermatoscopy animation synced to scroll position |
+| **Parallax Overlay** | Two-layer text with different parallax depths over the canvas |
+| **Features Grid** | 6 glassmorphism cards with per-card coloured glow on hover |
+| **Upload & Predict** | Drag-and-drop zone → FastAPI → animated ring chart + probability bars |
+| **Footer** | Tech stack badges, GitHub and API docs links |
