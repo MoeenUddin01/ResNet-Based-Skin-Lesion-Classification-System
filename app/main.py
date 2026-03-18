@@ -34,14 +34,10 @@ def create_app() -> FastAPI:
     @app.post("/api/v1/predict", response_model=PredictionResponse, summary="Predict Skin Lesion Class")
     def predict_endpoint(
         file: UploadFile = File(...),
-        model = Depends(get_model)
+        model=Depends(get_model),
     ):
         """Accepts an image file and returns the model prediction."""
-        if file.content_type not in ["image/jpeg", "image/png", "image/jpg"]:
-            raise HTTPException(status_code=400, detail="Invalid file type. Please upload a JPEG or PNG image.")
-            
         try:
-            # Sync read since prediction is CPU-bound
             contents = file.file.read()
             return predict_image(contents, model)
         except ValueError as e:

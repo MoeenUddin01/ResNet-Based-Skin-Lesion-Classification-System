@@ -30,7 +30,7 @@ export default function UploadPanel({ onResult, onClear }: UploadPanelProps) {
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
-        accept: { "image/jpeg": [".jpg", ".jpeg"], "image/png": [".png"] },
+        accept: { "image/*": [] },
         maxFiles: 1,
         maxSize: 10 * 1024 * 1024,
     });
@@ -57,8 +57,15 @@ export default function UploadPanel({ onResult, onClear }: UploadPanelProps) {
             });
 
             if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.detail ?? "Prediction failed. Please try again.");
+                let errorMessage = "Prediction failed. Please try again.";
+                const rawText = await response.text();
+                try {
+                    const data = JSON.parse(rawText);
+                    errorMessage = data.detail ?? data.message ?? errorMessage;
+                } catch {
+                    if (rawText) errorMessage = `Server error (${response.status}): ${rawText.slice(0, 120)}`;
+                }
+                throw new Error(errorMessage);
             }
 
             const result: PredictionResponse = await response.json();
@@ -106,11 +113,11 @@ export default function UploadPanel({ onResult, onClear }: UploadPanelProps) {
                                         {isDragActive ? "Drop the lesion image" : "Upload a Skin Lesion Image"}
                                     </p>
                                     <p className="text-slate-500 text-sm mt-1">
-                                        Drag &amp; drop or click · JPEG/PNG · max 10 MB
+                                        Drag &amp; drop or click · Any image format · max 10 MB
                                     </p>
                                 </div>
                                 <div className="flex gap-2 mt-2">
-                                    {["JPEG", "PNG"].map((f) => (
+                                    {["JPEG", "PNG", "WEBP", "BMP"].map((f) => (
                                         <span
                                             key={f}
                                             className="text-xs font-mono text-cyan-400/60 border border-cyan-500/20 rounded-full px-3 py-0.5"

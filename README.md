@@ -218,7 +218,7 @@ In a **separate terminal**:
 
 ```bash
 cd frontend
-npm install        # first time only
+npm install        
 npm run dev
 ```
 
