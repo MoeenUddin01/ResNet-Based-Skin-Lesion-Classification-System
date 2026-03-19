@@ -1,3 +1,13 @@
+---
+title: Skin Lesion API
+emoji: 🔬
+colorFrom: cyan
+colorTo: teal
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # ResNet-Based Skin Lesion Classification System
 
 Skin lesion image classification using a ResNet-152 backbone (PyTorch/torchvision). The codebase follows a modular ML pipeline pattern with separate concerns for data, model, and pipeline orchestration.
