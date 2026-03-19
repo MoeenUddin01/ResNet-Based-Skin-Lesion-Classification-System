@@ -28,6 +28,7 @@ dependencies = [
     "uvicorn>=0.30",
     # Web demo
     "streamlit>=1.35",
+    "huggingface-hub[cli]>=1.7.1",
 ]
 
 [project.optional-dependencies]

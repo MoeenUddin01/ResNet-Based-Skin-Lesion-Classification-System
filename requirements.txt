@@ -1,0 +1,26 @@
+# ── Serving dependencies only (no training / experiment-tracking tools) ────────
+# Generated from pyproject.toml for Hugging Face Spaces / Docker deployment.
+# ───────────────────────────────────────────────────────────────────────────────
+
+# Deep learning
+torch==2.1.0
+torchvision==0.16.0
+
+# Image processing
+Pillow>=10.0
+
+# Data handling
+numpy>=1.26
+pandas>=2.0
+
+# API serving
+fastapi>=0.115
+python-multipart>=0.0.9
+uvicorn>=0.30
+
+# Model download from HF Hub
+huggingface_hub>=0.22
+
+# Config & environment
+pyyaml>=6.0.3
+python-dotenv>=1.0.0
