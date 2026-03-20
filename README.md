@@ -210,8 +210,14 @@ The application uses a **FastAPI** backend for model serving and a premium **Nex
 ### 1. Start the FastAPI Backend
 
 ```bash
-source .venv/bin/activate
-uvicorn app.main:app --reload
+# Optional: create and activate venv
+python -m venv .venv && source .venv/bin/activate
+
+# Install serving dependencies
+pip install -r requirements.txt
+
+# Start the API
+uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
 The API will be available at `http://localhost:8000`. Interactive API docs are at `http://localhost:8000/docs`.

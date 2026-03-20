@@ -20,13 +20,19 @@ Hugging Face Spaces provides generous free CPU tiers specifically designed for M
 
 ### 1. Preparation
 1. Ensure your backend has a `Dockerfile` exposing port `7860` (the HF Spaces default).
-2. Create a clean `requirements.txt` containing **only** the dependencies needed for inference (e.g., `fastapi`, `uvicorn`, `torch`, `torchvision`, `Pillow`). Exclude training tools to keep the image small.
+2. Create a clean `requirements.txt` containing **only** the dependencies needed for inference.
+   > [!IMPORTANT]
+   > For Python 3.12+ environments on HF Spaces, use `torch==2.4.0+cpu` and `torchvision==0.19.0+cpu` to ensure compatibility and faster builds. Use the `--extra-index-url https://download.pytorch.org/whl/cpu` flag.
+
 3. Ensure CORS is configured in your API to allow requests from your future Vercel frontend.
+4. **Package Structure**: Every folder (`app/`, `src/`, etc.) must contain an empty `__init__.py` file to be correctly imported as a package in the Docker environment.
 
 ```python
-# app/middleware.py
-from fastapi.middleware.cors import CORSMiddleware
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+# app/main.py
+from dotenv import load_dotenv
+def create_app():
+    load_dotenv() # Load HF Secrets
+    ...
 ```
 
 ### 2. Code Adjustments
@@ -84,6 +90,18 @@ model_path = hf_hub_download(repo_id=repo_id, filename="model.pth")
 model.load_state_dict(torch.load(model_path, map_location="cpu"))
 ```
 *Note: Go to your HF Space Settings -> Repository Secrets and add `HF_MODEL_REPO` as a secret pointing to your model repo from Step 1.*
+
+### 4. Dockerfile Best Practices
+Ensure your `Dockerfile` includes `libgomp1` (required for PyTorch OpenMP) and correctly exposes the port.
+
+```dockerfile
+FROM python:3.12-slim
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 libglib2.0-0 libgomp1 && rm -rf /var/lib/apt/lists/*
+...
+EXPOSE 7860
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860"]
+```
 
 ---
 
