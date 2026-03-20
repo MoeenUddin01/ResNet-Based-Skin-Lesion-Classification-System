@@ -1,4 +1,7 @@
 from pathlib import Path
+import os
+
+from dotenv import load_dotenv
 
 from fastapi import FastAPI, UploadFile, File, Depends, HTTPException
 from fastapi.responses import HTMLResponse
@@ -10,6 +13,9 @@ from app.schemas import PredictionResponse
 
 def create_app() -> FastAPI:
     """Application factory for the FastAPI backend."""
+    # Load environment variables (e.g. HF_MODEL_REPO) from .env if it exists
+    load_dotenv()
+
     app = FastAPI(
         title="Skin Lesion Classification API",
         description="API and UI for interacting with the ResNet-152 model.",

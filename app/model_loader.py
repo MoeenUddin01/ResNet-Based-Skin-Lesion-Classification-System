@@ -39,22 +39,30 @@ def _resolve_model_path() -> Path:
         try:
             from huggingface_hub import hf_hub_download  # type: ignore[import]
 
+            print(f"Downloading model '{_MODEL_FILENAME}' from HF Hub repo '{_HF_REPO}'...")
             downloaded = hf_hub_download(
                 repo_id=_HF_REPO,
                 filename=_MODEL_FILENAME,
             )
             return Path(downloaded)
         except Exception as e:
-            raise RuntimeError(
-                f"Failed to download model from HF Hub repo '{_HF_REPO}': {e}"
-            ) from e
+            error_msg = (
+                f"Failed to download model from HF Hub repo '{_HF_REPO}'. "
+                f"Error: {e}. Ensure HF_MODEL_REPO is correct and the file "
+                f"'{_MODEL_FILENAME}' exists in the repository."
+            )
+            print(f"ERROR: {error_msg}")
+            raise RuntimeError(error_msg) from e
 
     if not _LOCAL_MODEL_PATH.exists():
-        raise FileNotFoundError(
-            f"Model not found at '{_LOCAL_MODEL_PATH}'. "
-            "Set the HF_MODEL_REPO environment variable to download it from "
-            "Hugging Face Hub, or place the weights file locally."
+        error_msg = (
+            f"Model file not found at '{_LOCAL_MODEL_PATH.absolute()}'. "
+            "To resolve: \n"
+            "1. Set 'HF_MODEL_REPO' as an environment variable (repo ID) to download from Hugging Face.\n"
+            "2. Ensure the weights file exists locally at the specified path."
         )
+        print(f"ERROR: {error_msg}")
+        raise FileNotFoundError(error_msg)
     return _LOCAL_MODEL_PATH
 
 
